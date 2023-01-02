@@ -1,0 +1,7 @@
+{
+  "name": "bartleby",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue"
+}
