@@ -14,27 +14,20 @@
 </template>
 
 <script lang="ts">
-import { IonContent, IonHeader, IonList, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar } from '@ionic/vue';
+import { IonContent, IonHeader, IonList, IonPage, IonTitle, IonToolbar } from '@ionic/vue';
 import { defineComponent } from 'vue';
 
 import DocumentListItem from '@/components/DocumentListItem.vue';
-import { documentService } from '@/services/document-service';
+import documentService  from '../services/document-service';
 import { BartlebyDocument, IBartlebyDocument } from '@/data/document';
 
 export default defineComponent({
     name: 'HomePage',
-    data() {
+    setup() {
+        const documents: BartlebyDocument[] = documentService.getDocuments();
         return {
-            documents: [] as IBartlebyDocument[]
+            documents 
         };
-    },
-    created() {
-        this.getDocuments();
-    },
-    methods: {
-        getDocuments() {
-            return documentService.getDocuments().then(docs =>this.documents = docs); 
-        }
     },
     components: {
         IonContent,
