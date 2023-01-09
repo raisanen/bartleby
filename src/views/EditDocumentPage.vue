@@ -5,10 +5,13 @@
                 <ion-buttons slot="start">
                     <ion-back-button default-href="/"></ion-back-button>
                 </ion-buttons>
-                <ion-title v-if="title">
-                    {{ title }}
+                <ion-title v-if="document?.title">
+                    {{ document.title }}
                 </ion-title>
                 <ion-buttons slot="end">
+                    <ion-button @click="showPreview = true">
+                        <ion-icon :icon="codeIcon"/>
+                    </ion-button>
                     <ion-button @click="showPreview = true">
                         <ion-icon :icon="previewIcon"/>
                     </ion-button>
@@ -19,11 +22,12 @@
             </ion-toolbar>
         </ion-header>
 
-        <ion-content class="main-content"  :fullscreen="true">
-            <code-mirror 
+        <ion-content class="main-content" :fullscreen="true">
+            <code-mirror
                 v-model="content" 
                 :lang="lang" :dark="true" 
-                :extensions="[theme]" 
+                :extensions="editorExtensions" 
+
                 :wrap="true" 
                 @keydown="handleKeydown"
                 @change="handleChange"
@@ -58,24 +62,25 @@
   
 <script lang="ts">
 import { useRoute } from 'vue-router';
-import { defineComponent, ref  } from 'vue';
+import { defineComponent, Ref, ref  } from 'vue';
 import { IonBackButton, IonButtons, IonButton, IonContent, IonHeader, IonPage, IonModal, IonToolbar, IonTitle, IonIcon } from '@ionic/vue';
 import { 
-    documentOutline as previewIcon, 
+    eyeOutline as previewIcon, 
     codeOutline as editorIcon, 
     saveOutline as saveIcon,
-    closeOutline as closeIcon ,
-    menuOutline as menuIcon
+    closeOutline as closeIcon,
+    codeOutline as codeIcon
 } from 'ionicons/icons';
 
-import CodeMirror from 'vue-codemirror6';
-import { EditorState } from '@codemirror/state';
-import { ViewUpdate } from '@codemirror/view';
-import { markdown } from '@codemirror/lang-markdown';
 import { bartleby } from '@/theme/codemirror-theme';
+import CodeMirror from 'vue-codemirror6';
+import { standardKeymap } from '@codemirror/commands';
+import { EditorState  } from '@codemirror/state';
+import { ViewUpdate, lineNumbers, keymap } from '@codemirror/view';
+import { markdown } from '@codemirror/lang-markdown';
 
+import { BartlebyDocument } from '@/data/document';
 import documentService from '@/services/document-service';
-import markdownHelper from '@/utils/markdown-helper';
 
 
 export default defineComponent({
@@ -84,32 +89,38 @@ export default defineComponent({
         return {
             showPreview: false,
             editorFocused: false,
-            showCommand: false
-        }
-    },
-    setup() {
-        const route = useRoute();
-        const docId = route.params.id as string;
-        const document = documentService.getDocument(docId);
-        return {
-            state: {} as EditorState,
+            showCommand: false,
+            document: {} as BartlebyDocument,
             previewIcon,
             editorIcon,
             saveIcon,
             closeIcon,
-            document,
-            title: document.title,
-            content: ref(document.content),
+            codeIcon
+        }
+    },
+    setup() {
+        const content: Ref<string> = ref('');
+        return {
+            state: {} as EditorState,
             lang: markdown(),
-            theme: bartleby
+            content,
+            editorExtensions: [bartleby, lineNumbers(), keymap.of(standardKeymap)]
         };
     },
+
+    async created() {
+        await this.reloadDocument();
+
+    },
     computed: {
+        // editorExtensions(): Extension[] {
+        //     return [this.theme, this.lineNumbers];
+        // }, 
         editorContent(): string {
             return this.state.doc ? this.state.doc.toJSON().join("\n") : '';
         },
         htmlPreview(): string {
-            return markdownHelper.parse(this.editorContent);
+            return documentService.render(this.editorContent);
         }
     },
     methods: {
@@ -121,28 +132,27 @@ export default defineComponent({
         },
         handleUpdate(update: ViewUpdate) {
             this.editorFocused = update.view.hasFocus;
-//            console.log(update);
         },
         togglePreview() {
             this.showPreview = !this.showPreview;
         },
         handleReady(args: {state: EditorState}) {
-            this.handleChange(args.state);
+            this.handleChange(this.state);
         },
         handleChange(state: EditorState) {
-            this.state = state;
+            this.state = {...state} as EditorState;
         },
-        saveDocument() {
-            documentService.updateDocument({...this.document, content: this.editorContent});
+        async saveDocument() {
+            await documentService.updateDocument({...this.document, content: this.editorContent});
         },
-        reloadDocument() {
+        async reloadDocument() {
             const route = useRoute();
             const docId = route.params.id as string;
-            const document = documentService.getDocument(docId);
-
-            this.document = document;
-            this.title = document.title;
-            this.content = document.content;
+            const document = await documentService.getDocument(docId);
+            if (document) {
+                this.document = {...document} as BartlebyDocument;
+                this.content = document.content;
+            }
         },
     },
     components: {
@@ -223,4 +233,3 @@ ion-modal.command-modal input {
 }
 </style>
 
-  

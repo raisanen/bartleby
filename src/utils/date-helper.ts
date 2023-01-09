@@ -1,6 +1,8 @@
 import { DateTime, Duration } from 'luxon';
 import { v4 as uuidv4 } from 'uuid';
 
+import { BartlebySettings } from '@/data/settings';
+
 class UniqueTimer {
     id: string;
     start: DateTime;
@@ -22,6 +24,8 @@ class UniqueTimer {
 }
 
 class DateHelperBase {
+    _settings: BartlebySettings = new BartlebySettings();
+
     createTimer(): UniqueTimer {
         return new UniqueTimer();
     }
@@ -37,8 +41,13 @@ class DateHelperBase {
     ensureString(val?: DateTime | string): string {
         return this.ensureDateTime(val).toISO();
     }
+
     ensureDateTime(val?: DateTime | string): DateTime {
         return val ? ((val instanceof DateTime) ? val : DateTime.fromISO(val)) : this.now();
+    }
+
+    toLocaleString(val?: DateTime | string) : string {
+        return this.ensureDateTime(val).setLocale(this._settings.locale).toLocaleString(DateTime.DATETIME_SHORT);
     }
 }
 
