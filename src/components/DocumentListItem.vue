@@ -10,7 +10,6 @@
             </ion-label>
         </ion-item>
         <ion-item-options side="end">
-            <ion-item-option>Favorite</ion-item-option>
             <ion-item-option color="danger">Delete</ion-item-option>
         </ion-item-options>
     </ion-item-sliding>

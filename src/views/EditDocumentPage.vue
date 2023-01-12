@@ -35,11 +35,7 @@
                 @update="handleUpdate"
             />
 
-            <ion-modal class="command-modal" :is-open="showCommand">
-                <ion-content>
-                    <input type="text"/>
-                </ion-content>
-            </ion-modal>
+            <command-line :show="showCommand" @command="handleCommand" :commands="cliCommands"></command-line>
 
             <ion-modal class="preview-modal" :is-open="showPreview">
                 <ion-header>
@@ -76,11 +72,13 @@ import { bartleby } from '@/theme/codemirror-theme';
 import CodeMirror from 'vue-codemirror6';
 import { standardKeymap } from '@codemirror/commands';
 import { EditorState  } from '@codemirror/state';
-import { ViewUpdate, lineNumbers, keymap } from '@codemirror/view';
+import { ViewUpdate, lineNumbers, keymap, EditorView } from '@codemirror/view';
 import { markdown } from '@codemirror/lang-markdown';
 
 import { BartlebyDocument } from '@/data/document';
 import documentService from '@/services/document-service';
+
+import CommandLine from '@/components/CommandLine.vue';
 
 
 export default defineComponent({
@@ -95,7 +93,11 @@ export default defineComponent({
             editorIcon,
             saveIcon,
             closeIcon,
-            codeIcon
+            codeIcon,
+            cliCommands: [
+                'rename',
+                'exit',
+            ]
         }
     },
     setup() {
@@ -113,9 +115,6 @@ export default defineComponent({
 
     },
     computed: {
-        // editorExtensions(): Extension[] {
-        //     return [this.theme, this.lineNumbers];
-        // }, 
         editorContent(): string {
             return this.state.doc ? this.state.doc.toJSON().join("\n") : '';
         },
@@ -124,9 +123,22 @@ export default defineComponent({
         }
     },
     methods: {
+        async handleCommand(cmd: string, ...args: string[]) {
+            switch(cmd) {
+                case 'rename':
+                    this.document.title = args.join(' ');
+                    await this.saveDocument();
+                    break;
+
+                case 'exit':
+                    this.showCommand = false;
+                    break;
+            }
+        },
+
         handleKeydown(ev: KeyboardEvent) {
             if (ev.ctrlKey && ev.shiftKey && ev.key === 'P') {
-                this.showCommand = true;
+                this.showCommand = !this.showCommand;
                 ev.preventDefault();
             }
         },
@@ -137,7 +149,7 @@ export default defineComponent({
             this.showPreview = !this.showPreview;
         },
         handleReady(args: {state: EditorState}) {
-            this.handleChange(this.state);
+            this.handleChange(args.state);
         },
         handleChange(state: EditorState) {
             this.state = {...state} as EditorState;
@@ -167,6 +179,7 @@ export default defineComponent({
         IonButton,
         IonModal,
         CodeMirror,
+        CommandLine
     },
 });
 </script>
@@ -203,20 +216,6 @@ ion-modal.preview-modal ion-content {
 }
 ion-modal.preview-modal ion-toolbar {
     --background: var(--ion-color-step-150);
-}
-ion-modal.command-modal {
-    --width: fit-content;
-    --min-width: 300px;
-    --min-height: 60px;
-    --max-width: 90vw;
-    --height: fit-content;
-    --border-radius: 6px;
-    --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
-}
-ion-modal.command-modal input {
-    width: 300px;
-    height: 2rem;
-    --color: var(--ion-color-primary);
 }
 
 .html-preview, .vue-codemirror {
